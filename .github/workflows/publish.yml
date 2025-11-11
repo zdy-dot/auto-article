@@ -1,0 +1,26 @@
+name   名字: Daily Publish  # 工作流名字
+on:
+  schedule:
+    - cron: "0 8 * * *"   # 每天早上 8 点（UTC，北京时间 16 点）
+  workflow_dispatch:      # 也可以手动点“Run workflow”立刻发
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ① 检出代码（拿到你的文章）
+        uses: actions/checkout@v4
+
+      - name: ② 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: ③ 装依赖
+        run: pip install requests pyyaml markdown
+
+      - name: ④ 发布到微信草稿箱
+        env:
+          WECHAT_APP_ID: ${{ secrets.WECHAT_APP_ID }}
+          WECHAT_APP_SECRET: ${{ secrets.WECHAT_APP_SECRET }}
+        run: python .github/scripts/publish.py
