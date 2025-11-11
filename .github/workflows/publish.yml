@@ -1,4 +1,4 @@
-name   名字: Daily Publish  # 工作流名字
+name   : Daily Publish  # 工作流名字
 on:
   schedule:
     - cron: "0 8 * * *"   # 每天早上 8 点（UTC，北京时间 16 点）
