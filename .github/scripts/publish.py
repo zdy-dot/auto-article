@@ -1,18 +1,38 @@
 #!/usr/bin/env python3
-import os
-import requests
-import markdown
-import datetime
+import os, requests, markdown, datetime
 from pathlib import Path
 
 APP_ID   = os.getenv('WECHAT_APP_ID')
 APP_SEC  = os.getenv('WECHAT_APP_SECRET')
-ARTICLE  = Path('test.md')
+ARTICLE  = Path('test.md')          # 默认发这篇，后面可改
 
+# ---------- 函数 ----------
 def get_token():
     url = f"https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={APP_ID}&secret={APP_SEC}"
-    r = requests.get(url, timeout=10).json()
-    return r['access_token']
+    try:
+        r = requests.get(url, timeout=10).json()
+        
+        # 检查是否返回了错误
+        if 'errcode' in r:
+            print(f"❌ 获取 Token 失败: 错误码 {r['errcode']}, 信息: {r['errmsg']}")
+            print(f"   URL: {url}")
+            print(f"   APP_ID: {APP_ID}")  # 仅调试用，生产环境请勿打印
+            print(f"   响应: {r}")
+            exit(1)
+        
+        # 确保 access_token 存在
+        if 'access_token' not in r:
+            print(f"❌ 响应中未找到 access_token: {r}")
+            exit(1)
+            
+        return r['access_token']
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 请求失败: {e}")
+        exit(1)
+    except ValueError:  # JSON 解析失败
+        print(f"❌ 响应不是有效 JSON: {r}")
+        exit(1)
 
 def publish_draft(token, title, html, cover_id=""):
     url = f"https://api.weixin.qq.com/cgi-bin/draft/add?access_token={token}"
@@ -23,23 +43,45 @@ def publish_draft(token, title, html, cover_id=""):
         "thumb_media_id": cover_id,
         "show_cover_pic": 1 if cover_id else 0
     }
-    r = requests.post(url, json=data, timeout=10).json()
-    if 'media_id' in r:
-        print(f"✅ 发布成功！草稿 media_id = {r['media_id']}")
-    else:
-        print(f"❌ 发布失败: {r}")
+    try:
+        r = requests.post(url, json=data, timeout=10).json()
+        
+        if 'errcode' in r:
+            print(f"❌ 发布失败: 错误码 {r['errcode']}, 信息: {r['errmsg']}")
+            print(f"   响应: {r}")
+            exit(1)
+        
+        if 'media_id' in r:
+            print(f"✅ 发布成功！草稿 media_id = {r['media_id']}")
+        else:
+            print(f"❌ 发布失败: 响应格式异常 {r}")
+            exit(1)
+            
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 请求失败: {e}")
+        exit(1)
+    except ValueError:
+        print(f"❌ 响应不是有效 JSON: {r}")
         exit(1)
 
+# ---------- 主流程 ----------
 if not APP_ID or not APP_SEC:
-    print("请先设置微信 APP_ID 和 APP_SECRET")
+    print("❌ 请先设置微信 APP_ID 和 APP_SECRET 环境变量")
     exit(1)
 
 if not ARTICLE.exists():
-    print(f"找不到文章：{ARTICLE}")
+    print(f"❌ 找不到文章：{ARTICLE}")
     exit(1)
 
-html = markdown.markdown(ARTICLE.read_text(encoding='utf-8'))
+try:
+    html = markdown.markdown(ARTICLE.read_text(encoding='utf-8'))
+except Exception as e:
+    print(f"❌ 读取或转换 Markdown 失败: {e}")
+    exit(1)
+
 title = f"自动日报 {datetime.date.today()}"
 
+print(f"📝 准备发布: {title}")
 token = get_token()
+print(f"🔑 获取 Token 成功")
 publish_draft(token, title, html)
