@@ -1,5 +1,5 @@
 #!/usr/bin/env python3   #!使用 Python3 环境：/usr/bin/env python3
-import os, requests, markdown, datetime导入 os、requests、markdown 和 datetime 模块
+import os, requests, markdown, datetime导入 os,requests,markdown 和 datetime 模块
 from pathlib    从 pathlib 导入 Pathimport Path
 
 APP_ID   = os.APP_ID = os.getenv('WECHAT_APP_ID')  # 获取环境变量 WECHAT_APP_ID 的值并赋给 APP_ID 变量getenv('WECHAT_APP_ID')
